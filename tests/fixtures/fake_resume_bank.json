@@ -1,0 +1,93 @@
+{
+  "meta": {
+    "version": "1.0",
+    "last_updated": "2026-01-15",
+    "candidate_name": "Alex Sample"
+  },
+  "contact": {
+    "name": "Alex Sample",
+    "email": "alex.sample@example.com",
+    "phone": "555-000-0000",
+    "linkedin": "linkedin.com/in/alexsample",
+    "location": "New York, NY"
+  },
+  "summaries": [
+    {
+      "id": "sum-consumer",
+      "focus": "consumer_product",
+      "text": "Product Manager with 2 years of experience building consumer mobile products.",
+      "best_for_tags": ["consumer", "mobile", "B2C"]
+    },
+    {
+      "id": "sum-data",
+      "focus": "data_driven",
+      "text": "Data-driven Product Manager with 2 years of experience translating analytics into product decisions.",
+      "best_for_tags": ["data", "analytics", "A/B testing"]
+    }
+  ],
+  "experience": [
+    {
+      "role_id": "role-ex1",
+      "company": "Example Corp",
+      "title": "Product Manager",
+      "start_date": "2024-01",
+      "end_date": "present",
+      "location": "New York, NY",
+      "include_always": true,
+      "bullets": [
+        {
+          "id": "b01",
+          "text": "Led development of a mobile checkout feature used by 500K+ monthly users",
+          "tags": ["mobile", "consumer", "launch", "cross-functional"],
+          "has_metric": true,
+          "metric_value": "500K+ users",
+          "priority": 1
+        },
+        {
+          "id": "b02",
+          "text": "Ran A/B tests on onboarding flow, improving 7-day retention by 12%",
+          "tags": ["A/B testing", "experimentation", "retention", "growth"],
+          "has_metric": true,
+          "metric_value": "12% improvement",
+          "priority": 1
+        },
+        {
+          "id": "b03",
+          "text": "Wrote PRDs for 4 feature releases",
+          "tags": ["PRD", "requirements", "stakeholder management"],
+          "has_metric": true,
+          "metric_value": "4 releases",
+          "priority": 2
+        },
+        {
+          "id": "b04",
+          "text": "Built SQL dashboards to monitor conversion funnels",
+          "tags": ["SQL", "data analysis", "dashboards", "funnel"],
+          "has_metric": false,
+          "metric_value": null,
+          "priority": 2
+        }
+      ]
+    }
+  ],
+  "skills": {
+    "technical": [
+      { "skill": "SQL", "tags": ["data", "analytics"] },
+      { "skill": "A/B Testing", "tags": ["experimentation", "growth"] }
+    ],
+    "platform": [
+      { "skill": "Agile / Scrum", "tags": ["agile", "scrum"] }
+    ]
+  },
+  "education": [
+    {
+      "id": "edu-1",
+      "school": "State University",
+      "degree": "B.S. in Business Administration",
+      "graduation": "2023",
+      "honors": null,
+      "include_always": true
+    }
+  ],
+  "projects": []
+}

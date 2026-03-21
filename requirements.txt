@@ -1,0 +1,12 @@
+anthropic
+google-genai
+google-api-python-client
+google-auth-oauthlib
+httpx
+beautifulsoup4
+python-docx
+jinja2
+pyyaml
+python-dotenv
+docx2pdf
+pypdf

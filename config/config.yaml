@@ -1,0 +1,123 @@
+search:
+  # Group A: NYC-localized queries
+  nyc_queries:
+    - "associate product manager"
+    - "product manager entry level"
+    - "APM product"
+    - "junior product manager PM1"
+    - "product manager"                # Broad — catches generic-titled PM roles
+  # Group B: Remote-focused query (uses remote_search_location)
+  remote_queries:
+    - "product manager remote"
+  serpapi_location: "New York, NY"     # Used for nyc_queries
+  remote_search_location: "United States"  # Used for remote_queries
+  date_filter: "3days"                 # 3-day window — matches hard filter freshness
+  results_per_query: 10
+
+location:
+  target_metro: "new_york"
+  metro_aliases:
+    - "new york"
+    - "nyc"
+    - "manhattan"
+    - "brooklyn"
+    - "queens"
+    - "jersey city"
+    - "hoboken"
+    - "new york, ny"
+    - "ny metro"
+  accept_remote: true
+  accept_hybrid_in_metro: true
+  accept_onsite_in_metro: true
+  accept_relocation: false             # Global default. Target companies bypass this.
+
+title_filter:
+  # PM-adjacent titles to test for recall. Matches are flagged in digest.
+  experimental_allowlist:
+    - '\bproduct operations\b'
+    - '\bgrowth analyst\b'
+    - '\bproduct strategy\b'
+
+scoring:
+  pass1_cutoff: 30       # Out of 75. Monitor after 5 runs — lower or remove if <2 jobs cut/run.
+  core_skills:
+    - "product management"
+    - "roadmap"
+    - "A/B testing"
+    - "user research"
+    - "agile"
+    - "scrum"
+    - "cross-functional"
+    - "stakeholder management"
+    - "SQL"
+    - "data analysis"
+    - "KPIs"
+    - "metrics"
+    - "mobile"
+    - "consumer"
+    - "fintech"
+    - "Jira"
+    - "Figma"
+    - "PRD"
+    - "user stories"
+    - "go-to-market"
+  target_companies:
+    - "Robinhood"
+    - "Stripe"
+    - "Square"
+    - "Block"
+    - "Cash App"
+    - "Coinbase"
+    - "Chime"
+    - "SoFi"
+    - "Plaid"
+    - "Affirm"
+    - "Duolingo"
+    - "Spotify"
+    - "Notion"
+    - "Figma"
+    - "Discord"
+    - "DoorDash"
+    - "Instacart"
+    - "Airbnb"
+    - "Reddit"
+    - "Pinterest"
+  tech_fintech_signals:
+    - "tech"
+    - "labs"
+    - "ai"
+    - "fintech"
+    - "software"
+    - "digital"
+    - "crypto"
+    - "blockchain"
+    - "payments"
+    - "neobank"
+  thresholds:
+    generate_resume: 60
+    include_in_digest: 40
+
+jd_extraction:
+  min_word_count: 50             # Below this, skip the job
+  short_jd_warning_threshold: 150 # Below this, flag in digest
+
+tailoring:
+  provider: "claude"             # Default to Anthropics API
+  gemini_model: "gemini-2.5-flash"
+  claude_model: "claude-sonnet-4-20250514"  # Ensure correct Anthropics model
+  max_bullets_per_role: 7
+  min_bullets_per_role: 3        # Only enforced for include_always roles
+  jd_analysis_preamble: false    # Set true to enable JD analysis before tailoring
+  recent_jobs_bullet_limits:
+    min: 3
+    max: 7
+  older_jobs_bullet_limits:
+    max: 2
+
+output:
+  resume_format: "docx"
+  file_naming: "{first}_{last}_Resume_{company}_{title}"
+
+notification:
+  always_local_html: true        # Always generate and open local digest
+  gmail_enabled: false           # Set to true after configuring Gmail OAuth

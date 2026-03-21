@@ -1,0 +1,156 @@
+{
+  "search_metadata": {
+    "id": "test-fixture-001",
+    "status": "Success"
+  },
+  "search_parameters": {
+    "q": "associate product manager",
+    "engine": "google_jobs",
+    "location_requested": "New York, NY",
+    "chips": "date_posted:3days"
+  },
+  "jobs_results": [
+    {
+      "title": "Associate Product Manager",
+      "company_name": "TechCorp",
+      "location": "New York, NY",
+      "via": "LinkedIn",
+      "share_link": "https://www.google.com/search?ibp=htl;jobs&q=apm&htidocid=FAKE001",
+      "extensions": ["Today", "Full-time"],
+      "detected_extensions": {
+        "posted_at": "Today",
+        "schedule_type": "Full-time"
+      },
+      "description": "We are looking for an Associate Product Manager to join our team. You will work on consumer-facing products, manage the product roadmap, conduct user research, and collaborate with cross-functional teams including engineering, design, and data science. Requirements: 0-2 years of experience in product management, strong analytical skills with SQL and data analysis, familiarity with agile methodologies and tools like Jira. Experience with A/B testing and mobile products is a plus. You will write PRDs, define KPIs, and drive go-to-market strategy for new features.",
+      "job_highlights": [],
+      "apply_options": [
+        {
+          "title": "LinkedIn",
+          "link": "https://www.linkedin.com/jobs/view/fake-001"
+        }
+      ],
+      "job_id": "FAKE_JOB_ID_001"
+    },
+    {
+      "title": "Product Manager - Payments",
+      "company_name": "FinanceApp Inc.",
+      "location": "Jersey City, NJ",
+      "via": "Lever",
+      "share_link": "https://www.google.com/search?ibp=htl;jobs&q=pm&htidocid=FAKE002",
+      "extensions": ["2 days ago", "Full-time"],
+      "detected_extensions": {
+        "posted_at": "2 days ago",
+        "schedule_type": "Full-time"
+      },
+      "description": "FinanceApp is hiring a Product Manager to own our payments platform. You will define the product vision for payment processing, work with stakeholder management across the fintech organization, and lead scrum ceremonies. We need someone with 1-3 years of PM experience, knowledge of consumer fintech, and strong skills in metrics and KPIs. Familiarity with Figma for design reviews and experience writing user stories are required.",
+      "job_highlights": [],
+      "apply_options": [
+        {
+          "title": "Lever",
+          "link": "https://jobs.lever.co/financeapp/fake-002"
+        }
+      ],
+      "job_id": "FAKE_JOB_ID_002"
+    },
+    {
+      "title": "Senior Product Manager",
+      "company_name": "BigCorp",
+      "location": "San Francisco, CA",
+      "via": "Indeed",
+      "share_link": "https://www.google.com/search?ibp=htl;jobs&q=pm&htidocid=FAKE003",
+      "extensions": ["3 days ago", "Full-time"],
+      "detected_extensions": {
+        "posted_at": "3 days ago",
+        "schedule_type": "Full-time"
+      },
+      "description": "BigCorp is looking for a Senior Product Manager with 8+ years of experience to lead our enterprise platform. You will manage a team of PMs and drive strategic initiatives across the organization.",
+      "job_highlights": [],
+      "apply_options": [
+        {
+          "title": "Indeed",
+          "link": "https://www.indeed.com/jobs/fake-003"
+        }
+      ],
+      "job_id": "FAKE_JOB_ID_003"
+    },
+    {
+      "title": "Associate Product Manager",
+      "company_name": "TechCorp",
+      "location": "New York, NY",
+      "via": "Glassdoor",
+      "share_link": "https://www.google.com/search?ibp=htl;jobs&q=apm&htidocid=FAKE004",
+      "extensions": ["Today", "Full-time"],
+      "detected_extensions": {
+        "posted_at": "Today",
+        "schedule_type": "Full-time"
+      },
+      "description": "We are looking for an Associate Product Manager to join our team. You will work on consumer-facing products, manage the product roadmap, conduct user research, and collaborate with cross-functional teams including engineering, design, and data science. Requirements: 0-2 years of experience in product management, strong analytical skills with SQL and data analysis, familiarity with agile methodologies and tools like Jira. Experience with A/B testing and mobile products is a plus. You will write PRDs, define KPIs, and drive go-to-market strategy for new features.",
+      "job_highlights": [],
+      "apply_options": [
+        {
+          "title": "Glassdoor",
+          "link": "https://www.glassdoor.com/jobs/fake-004"
+        }
+      ],
+      "job_id": "FAKE_JOB_ID_004"
+    },
+    {
+      "title": "Product Manager Remote",
+      "company_name": "RemoteFirst Co",
+      "location": "United States (Remote)",
+      "via": "Company Website",
+      "share_link": "https://www.google.com/search?ibp=htl;jobs&q=pm&htidocid=FAKE005",
+      "extensions": ["Today", "Full-time"],
+      "detected_extensions": {
+        "posted_at": "Today",
+        "schedule_type": "Full-time"
+      },
+      "description": "RemoteFirst Co is hiring a Product Manager for our distributed team. Fully remote position. You will own the consumer product roadmap, run A/B tests, and work with agile teams.",
+      "job_highlights": [],
+      "apply_options": [],
+      "job_id": "FAKE_JOB_ID_005"
+    },
+    {
+      "title": "APM Program",
+      "company_name": "Robinhood",
+      "location": "Menlo Park, CA",
+      "via": "Robinhood Careers",
+      "share_link": "https://www.google.com/search?ibp=htl;jobs&q=apm&htidocid=FAKE006",
+      "extensions": ["1 day ago", "Full-time"],
+      "detected_extensions": {
+        "posted_at": "1 day ago",
+        "schedule_type": "Full-time"
+      },
+      "description": "Join Robinhood's APM Program. As an Associate Product Manager, you will work on our consumer fintech platform, democratizing finance for all. Requirements include strong analytical skills, familiarity with SQL and data analysis, and passion for consumer mobile products. You will partner with engineering and design to ship features that impact millions of users. Experience with agile, scrum, user research, and go-to-market planning preferred.",
+      "job_highlights": [],
+      "apply_options": [
+        {
+          "title": "Robinhood Careers",
+          "link": "https://robinhood.com/careers/fake-006"
+        }
+      ],
+      "job_id": "FAKE_JOB_ID_006"
+    },
+    {
+      "title": "Product Analyst",
+      "company_name": "DataDriven LLC",
+      "location": "Brooklyn, NY (Hybrid)",
+      "via": "LinkedIn",
+      "share_link": "https://www.google.com/search?ibp=htl;jobs&q=pa&htidocid=FAKE007",
+      "extensions": ["2 days ago", "Full-time"],
+      "detected_extensions": {
+        "posted_at": "2 days ago",
+        "schedule_type": "Full-time"
+      },
+      "description": "Short JD.",
+      "job_highlights": [],
+      "apply_options": [
+        {
+          "title": "LinkedIn",
+          "link": "https://www.linkedin.com/jobs/view/fake-007"
+        }
+      ],
+      "job_id": "FAKE_JOB_ID_007"
+    }
+  ]
+}

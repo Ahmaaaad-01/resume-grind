@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PM Jobs — {{ run_date }} — {{ stats.total_jobs }} roles, {{ stats.resumes_generated }} resumes ready</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 900px; margin: 0 auto; padding: 20px; background: #f8f9fa; color: #1a1a1a; }
+  h1 { font-size: 24px; border-bottom: 2px solid #333; padding-bottom: 8px; }
+  h2 { font-size: 18px; color: #444; margin-top: 30px; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
+  .header-stats { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin-bottom: 24px; }
+  .header-stats span { display: inline-block; margin-right: 24px; font-size: 14px; }
+  .header-stats .num { font-weight: bold; font-size: 20px; color: #2563eb; }
+  .job-card { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+  .job-card.warning { border-left: 4px solid #f59e0b; }
+  .job-title { font-size: 16px; font-weight: bold; margin: 0; }
+  .job-meta { font-size: 13px; color: #666; margin: 4px 0 8px; }
+  .score { display: inline-block; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 14px; }
+  .score-high { background: #dcfce7; color: #166534; }
+  .score-mid { background: #fef3c7; color: #92400e; }
+  .score-low { background: #fee2e2; color: #991b1b; }
+  .match-reason { font-size: 13px; margin: 8px 0; }
+  .bullets { font-size: 13px; margin: 8px 0; padding-left: 20px; }
+  .bullets li { margin-bottom: 4px; }
+  .tier-tag { font-size: 11px; font-weight: bold; padding: 1px 4px; border-radius: 3px; }
+  .tier-selected { background: #e0e7ff; color: #3730a3; }
+  .tier-rephrased { background: #dbeafe; color: #1e40af; }
+  .tier-derived { background: #fce7f3; color: #9d174d; }
+  .gaps { font-size: 13px; color: #b91c1c; margin: 8px 0; }
+  .warning-flag { font-size: 12px; color: #d97706; margin: 4px 0; }
+  .actions { margin-top: 10px; }
+  .actions a { display: inline-block; padding: 6px 14px; background: #2563eb; color: #fff; text-decoration: none; border-radius: 4px; font-size: 13px; margin-right: 8px; }
+  .actions a.secondary { background: #6b7280; }
+  .footer { margin-top: 40px; padding: 16px; background: #f1f5f9; border-radius: 8px; font-size: 12px; color: #64748b; }
+  .footer p { margin: 4px 0; }
+</style>
+</head>
+<body>
+
+<h1>PM Jobs — {{ run_date }}</h1>
+
+<div class="header-stats">
+  <span><span class="num">{{ stats.total_jobs }}</span> jobs found</span>
+  <span><span class="num">{{ stats.resumes_generated }}</span> resumes ready</span>
+  <span><span class="num">{{ stats.hard_filter_passed }}</span> passed hard filters</span>
+  <span><span class="num">{{ stats.pass1_filtered }}</span> cut by Pass 1</span>
+</div>
+
+{% if top_matches %}
+<h2>Top Matches (score ≥ 60)</h2>
+{% for job in top_matches %}
+<div class="job-card{% if job.warnings %} warning{% endif %}">
+  <p class="job-title">{{ job.company }} — {{ job.title_raw }}</p>
+  <p class="job-meta">
+    <span class="score score-high">{{ job.final_score }}/100</span>
+    | {{ job.location }} | Posted: {{ job.date_posted }}
+    {% if job.query_source == 'remote' %} | 🌐 Remote query{% endif %}
+  </p>
+
+  {% if job.match_reason %}
+  <p class="match-reason"><strong>Why this matches:</strong> {{ job.match_reason }}</p>
+  {% endif %}
+
+  {% if job.bullets %}
+  <p class="match-reason"><strong>What the resume emphasizes:</strong></p>
+  <ul class="bullets">
+    {% for bullet in job.bullets %}
+    <li>
+      <span class="tier-tag tier-{{ bullet.tier }}">{{ bullet.tier }}</span>
+      {{ bullet.text_final }}
+      {% if bullet.tier == 'derived' and bullet.derivation_rationale %}
+      <br><em style="font-size:11px; color:#666;">→ {{ bullet.derivation_rationale }}</em>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
+  {% if job.gaps %}
+  <p class="gaps"><strong>Gaps:</strong> {{ job.gaps | join('; ') }}</p>
+  {% endif %}
+
+  {% if job.keyword_stats %}
+  <p class="match-reason"><strong>Keyword coverage:</strong> {{ job.keyword_stats.matched }}/{{ job.keyword_stats.total }} |
+    {% if job.keyword_stats.missing %}Missing: {{ job.keyword_stats.missing | join(', ') }}{% endif %}
+  </p>
+  {% endif %}
+
+  {% if job.jd_source %}
+  <p class="job-meta">JD source: {{ job.jd_source }}{% if job.jd_word_count %} ({{ job.jd_word_count }} words){% endif %}</p>
+  {% endif %}
+
+  {% for w in job.warnings %}
+  <p class="warning-flag">⚠️ {{ w }}</p>
+  {% endfor %}
+
+  <div class="actions">
+    {% if job.url %}<a href="{{ job.url }}">View Job Posting</a>{% endif %}
+    {% if job.resume_path %}<a href="file://{{ job.resume_path }}">Download Resume (DOCX)</a>{% endif %}
+  </div>
+</div>
+{% endfor %}
+{% endif %}
+
+{% if worth_a_look %}
+<h2>Worth a Look (score 40–59)</h2>
+{% for job in worth_a_look %}
+<div class="job-card">
+  <p class="job-title">{{ job.company }} — {{ job.title_raw }}</p>
+  <p class="job-meta">
+    <span class="score score-mid">{{ job.final_score }}/100</span>
+    | {{ job.location }} | Posted: {{ job.date_posted }}
+    {% if job.query_source == 'remote' %} | 🌐 Remote query{% endif %}
+  </p>
+  {% for w in job.warnings %}
+  <p class="warning-flag">⚠️ {{ w }}</p>
+  {% endfor %}
+  <div class="actions">
+    {% if job.url %}<a href="{{ job.url }}" class="secondary">View Job Posting</a>{% endif %}
+  </div>
+</div>
+{% endfor %}
+{% endif %}
+
+{% if resurfaced %}
+<h2>Reminder: Still Open</h2>
+{% for job in resurfaced %}
+<div class="job-card">
+  <p class="job-title">{{ job.company }} — {{ job.title_raw }}</p>
+  <p class="job-meta">
+    <span class="score score-mid">{{ job.final_score }}/100</span>
+    | First seen: {{ job.first_seen_run }}
+  </p>
+  <div class="actions">
+    {% if job.url %}<a href="{{ job.url }}" class="secondary">View Job Posting</a>{% endif %}
+    {% if job.resume_path %}<a href="file://{{ job.resume_path }}">Existing Resume</a>{% endif %}
+  </div>
+</div>
+{% endfor %}
+{% endif %}
+
+{% if review_carefully %}
+<h2>Review Carefully</h2>
+{% for job in review_carefully %}
+<div class="job-card warning">
+  <p class="job-title">{{ job.company }} — {{ job.title_raw }}</p>
+  <p class="job-meta">
+    <span class="score score-low">{{ job.final_score }}/100</span>
+    | {{ job.location }}
+  </p>
+  {% for w in job.warnings %}
+  <p class="warning-flag">⚠️ {{ w }}</p>
+  {% endfor %}
+  <div class="actions">
+    {% if job.url %}<a href="{{ job.url }}" class="secondary">View Job Posting</a>{% endif %}
+    {% if job.resume_path %}<a href="file://{{ job.resume_path }}">Download Resume (DOCX)</a>{% endif %}
+  </div>
+</div>
+{% endfor %}
+{% endif %}
+
+<div class="footer">
+  <p><strong>Pipeline Stats</strong></p>
+  <p>Pass 1 filtered: {{ stats.pass1_filtered }} jobs (out of {{ stats.hard_filter_passed }} hard-filter survivors)</p>
+  <p>JD extraction: {{ stats.jd_full_fetch }} full fetch | {{ stats.jd_snippet }} snippet fallback | {{ stats.jd_skipped }} skipped</p>
+  <p>Query sources: NYC queries: {{ stats.nyc_jobs }} jobs | Remote query: {{ stats.remote_jobs }} jobs</p>
+  {% if stats.experimental_titles > 0 %}
+  <p>Experimental title matches: {{ stats.experimental_titles }}</p>
+  {% endif %}
+  {% if stats.target_overrides > 0 %}
+  <p>Target-company relocation overrides: {{ stats.target_overrides }}</p>
+  {% endif %}
+  {% if stats.errors %}
+  <p><strong>Errors:</strong></p>
+  {% for err in stats.errors %}
+  <p style="color: #dc2626;">{{ err }}</p>
+  {% endfor %}
+  {% endif %}
+</div>
+
+</body>
+</html>
