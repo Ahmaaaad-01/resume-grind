@@ -1,7 +1,6 @@
 """Hard filters: title classification, location, YOE, posting age, language."""
 
 import re
-from datetime import date, timedelta
 
 # ---------------------------------------------------------------------------
 # Title denylist / allowlist (from spec Section 2a)
@@ -220,39 +219,13 @@ def check_yoe(jd_text: str) -> bool:
     """
     Check if a job's YOE requirement is within range.
 
-    Returns True (pass) if requirement is <= 4 years or not specified.
-    Returns False (reject) if requirement is >= 5 years.
+    Returns True (pass) if requirement is <= 5 years or not specified.
+    Returns False (reject) if requirement is >= 6 years.
     """
     yoe = extract_yoe(jd_text)
     if yoe is None:
         return True  # No requirement detected — pass (conservative)
-    return yoe <= 4
-
-
-# ---------------------------------------------------------------------------
-# Posting age filter
-# ---------------------------------------------------------------------------
-
-def check_posting_age(date_posted: str | None, today: date | None = None) -> bool:
-    """
-    Check if a job was posted within the last 3 days.
-
-    date_posted should be an ISO date string (YYYY-MM-DD).
-    Returns True if within 3 days or if date_posted is None/unparseable.
-    """
-    if not date_posted:
-        return True  # Unknown date — pass (conservative)
-
-    if today is None:
-        today = date.today()
-
-    try:
-        posted = date.fromisoformat(date_posted)
-    except ValueError:
-        return True  # Unparseable — pass
-
-    age_days = (today - posted).days
-    return age_days <= 3
+    return yoe <= 5
 
 
 # ---------------------------------------------------------------------------
@@ -262,7 +235,6 @@ def check_posting_age(date_posted: str | None, today: date | None = None) -> boo
 def passes_hard_filters(
     job: dict,
     config: dict,
-    today: date | None = None,
 ) -> tuple[bool, dict]:
     """
     Apply all hard filters to a job.
@@ -274,8 +246,11 @@ def passes_hard_filters(
       - location_passes: bool
       - location_target_override: bool
       - yoe_passes: bool
-      - age_passes: bool
       - reject_reason: str | None
+
+    Note: Posting age filter was removed — SerpAPI's date_posted chip
+    handles freshness, and SerpAPI returns relative date strings ("2 days ago")
+    that can't be parsed as ISO dates. See Tuning-Round-2.md Section 8.3.
     """
     meta = {
         "title_passes": False,
@@ -284,7 +259,6 @@ def passes_hard_filters(
         "location_passes": False,
         "location_target_override": False,
         "yoe_passes": False,
-        "age_passes": False,
         "reject_reason": None,
     }
 
@@ -317,13 +291,6 @@ def passes_hard_filters(
     meta["yoe_passes"] = yoe_passes
     if not yoe_passes:
         meta["reject_reason"] = "yoe"
-        return (False, meta)
-
-    # Posting age filter
-    age_passes = check_posting_age(job.get("date_posted"), today)
-    meta["age_passes"] = age_passes
-    if not age_passes:
-        meta["reject_reason"] = "posting_age"
         return (False, meta)
 
     return (True, meta)

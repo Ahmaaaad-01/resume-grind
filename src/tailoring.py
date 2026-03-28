@@ -152,12 +152,16 @@ OLDER roles: max {older_limits['max']} bullets each.
 Produce the tailored resume JSON. Respect the bullet count limits above. Include 2 optional roles from different companies. All source_ids must reference real bank bullet IDs. Rewrite every bullet aggressively for this JD. Output ONLY the JSON."""
 
 
-def _call_claude(user_prompt: str) -> str:
-    """Call Anthropic Claude API and return raw text response."""
+def _call_claude(user_prompt: str, api_key: str | None = None) -> str:
+    """Call Anthropic Claude API and return raw text response.
+
+    Args:
+        api_key: If provided, use this key instead of the env var.
+    """
     import anthropic
 
-    api_key = get_env("ANTHROPIC_API_KEY")
-    client = anthropic.Anthropic(api_key=api_key)
+    key = api_key or get_env("ANTHROPIC_API_KEY")
+    client = anthropic.Anthropic(api_key=key)
 
     tailoring_cfg = _get_tailoring_config()
     model = tailoring_cfg.get("claude_model", "claude-sonnet-4-20250514")
@@ -171,12 +175,16 @@ def _call_claude(user_prompt: str) -> str:
     return message.content[0].text.strip()
 
 
-def _call_gemini(user_prompt: str) -> str:
-    """Call Google Gemini API and return raw text response."""
+def _call_gemini(user_prompt: str, api_key: str | None = None) -> str:
+    """Call Google Gemini API and return raw text response.
+
+    Args:
+        api_key: If provided, use this key instead of the env var.
+    """
     from google import genai
 
-    api_key = get_env("GEMINI_API_KEY")
-    client = genai.Client(api_key=api_key)
+    key = api_key or get_env("GEMINI_API_KEY")
+    client = genai.Client(api_key=key)
 
     tailoring_cfg = _get_tailoring_config()
     model = tailoring_cfg.get("gemini_model", "gemini-2.5-flash")
@@ -209,7 +217,8 @@ def _strip_markdown_fences(raw_text: str) -> str:
     return raw_text
 
 
-def tailor_resume(job: dict, jd_text: str, bank: dict, config: dict) -> dict:
+def tailor_resume(job: dict, jd_text: str, bank: dict, config: dict,
+                  api_key: str | None = None, provider_override: str | None = None) -> dict:
     """Call LLM API to tailor a resume for a specific job.
 
     Args:
@@ -217,6 +226,8 @@ def tailor_resume(job: dict, jd_text: str, bank: dict, config: dict) -> dict:
         jd_text: Full job description text.
         bank: Loaded and validated resume bank.
         config: Application config dict.
+        api_key: If provided, use this key instead of the env var.
+        provider_override: If provided, use this provider instead of config.
 
     Returns:
         Dict with tailored resume structure and validation_errors list.
@@ -225,7 +236,7 @@ def tailor_resume(job: dict, jd_text: str, bank: dict, config: dict) -> dict:
     _current_config = config
 
     tailoring_cfg = config.get("tailoring", {})
-    provider = tailoring_cfg.get("provider", "gemini")
+    provider = provider_override or tailoring_cfg.get("provider", "gemini")
 
     user_prompt = _build_user_prompt(bank, jd_text, config)
 
@@ -233,9 +244,9 @@ def tailor_resume(job: dict, jd_text: str, bank: dict, config: dict) -> dict:
              job.get("title_raw", "?"), job.get("company", "?"), provider)
 
     if provider == "claude":
-        raw_text = _call_claude(user_prompt)
+        raw_text = _call_claude(user_prompt, api_key=api_key)
     elif provider == "gemini":
-        raw_text = _call_gemini(user_prompt)
+        raw_text = _call_gemini(user_prompt, api_key=api_key)
     else:
         return {"validation_errors": [f"Unknown tailoring provider: {provider}"]}
 

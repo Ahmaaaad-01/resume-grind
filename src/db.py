@@ -1,6 +1,7 @@
 """SQLite database for job tracking, deduplication, and status management."""
 
 import hashlib
+import os
 import re
 import sqlite3
 from datetime import date, datetime
@@ -8,7 +9,7 @@ from pathlib import Path
 
 from src.config import PROJECT_ROOT
 
-DB_PATH = PROJECT_ROOT / "db" / "pipeline.db"
+DB_PATH = Path(os.environ.get("DB_PATH", str(PROJECT_ROOT / "db" / "pipeline.db")))
 
 SCHEMA = """\
 CREATE TABLE IF NOT EXISTS jobs (
@@ -32,13 +33,49 @@ CREATE TABLE IF NOT EXISTS jobs (
     title_experimental BOOLEAN DEFAULT 0,
     query_source       TEXT,
     score_breakdown    TEXT,
+    reject_reason      TEXT,
     gaps               TEXT,
+    user_id            TEXT REFERENCES users(id),
     created_at         TEXT DEFAULT (datetime('now')),
     updated_at         TEXT DEFAULT (datetime('now'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_status ON jobs(status);
 CREATE INDEX IF NOT EXISTS idx_first_seen ON jobs(first_seen_run);
+CREATE INDEX IF NOT EXISTS idx_jobs_user ON jobs(user_id);
+
+-- User accounts (Google OAuth)
+CREATE TABLE IF NOT EXISTS users (
+    id         TEXT PRIMARY KEY,
+    email      TEXT UNIQUE NOT NULL,
+    name       TEXT,
+    google_id  TEXT UNIQUE NOT NULL,
+    picture    TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+
+-- Per-user settings and encrypted API keys
+CREATE TABLE IF NOT EXISTS user_settings (
+    user_id             TEXT PRIMARY KEY REFERENCES users(id),
+    serpapi_key_enc     TEXT,
+    anthropic_key_enc   TEXT,
+    gemini_key_enc      TEXT,
+    resume_bank_json    TEXT,
+    tailoring_provider  TEXT DEFAULT 'gemini',
+    updated_at          TEXT DEFAULT (datetime('now'))
+);
+
+-- Resume file storage (BLOBs instead of filesystem)
+CREATE TABLE IF NOT EXISTS resume_files (
+    id           TEXT PRIMARY KEY,
+    user_id      TEXT NOT NULL REFERENCES users(id),
+    dedup_key    TEXT NOT NULL,
+    filename     TEXT NOT NULL,
+    content      BLOB NOT NULL,
+    content_type TEXT DEFAULT 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    created_at   TEXT DEFAULT (datetime('now')),
+    UNIQUE(user_id, dedup_key)
+);
 """
 
 
@@ -54,6 +91,15 @@ def get_connection() -> sqlite3.Connection:
 def init_db(conn: sqlite3.Connection) -> None:
     """Create tables and indexes if they don't exist."""
     conn.executescript(SCHEMA)
+    # Migrate: add columns if missing (added after initial schema)
+    cols = {row[1] for row in conn.execute("PRAGMA table_info(jobs)").fetchall()}
+    if "reject_reason" not in cols:
+        conn.execute("ALTER TABLE jobs ADD COLUMN reject_reason TEXT")
+    if "source" not in cols:
+        conn.execute("ALTER TABLE jobs ADD COLUMN source TEXT DEFAULT 'serpapi'")
+    if "user_id" not in cols:
+        conn.execute("ALTER TABLE jobs ADD COLUMN user_id TEXT REFERENCES users(id)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_jobs_user ON jobs(user_id)")
     conn.commit()
 
 
@@ -163,6 +209,45 @@ def upsert_job(conn: sqlite3.Connection, job: dict) -> None:
     conn.commit()
 
 
+def insert_manual_job(conn: sqlite3.Connection, job: dict) -> None:
+    """Insert a manually submitted job."""
+    conn.execute(
+        """
+        INSERT INTO jobs (
+            dedup_key, title_raw, title_normalized, company, location,
+            url, date_posted, first_seen_run, last_seen_run, times_seen,
+            status, resume_path, jd_text, jd_source, jd_word_count,
+            gaps, source
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, 'manual')
+        """,
+        (
+            job["dedup_key"],
+            job["title_raw"],
+            job["title_normalized"],
+            job["company"],
+            job["location"],
+            job.get("url", ""),
+            job.get("date_posted"),
+            job["run_date"],
+            job["run_date"],
+            job.get("status", "resume_generated"),
+            job.get("resume_path"),
+            job.get("jd_text"),
+            job.get("jd_source", "manual_paste"),
+            job.get("jd_word_count"),
+            job.get("gaps"),
+        ),
+    )
+    conn.commit()
+
+
+def delete_job(conn: sqlite3.Connection, dedup_key: str) -> bool:
+    """Delete a job record. Returns True if a row was deleted."""
+    cur = conn.execute("DELETE FROM jobs WHERE dedup_key = ?", (dedup_key,))
+    conn.commit()
+    return cur.rowcount > 0
+
+
 def update_job(conn: sqlite3.Connection, dedup_key: str, **fields) -> None:
     """Update specific fields on a job row."""
     if not fields:
@@ -230,6 +315,7 @@ def expire_old_jobs(conn: sqlite3.Connection, cutoff_days: int = 14) -> int:
         UPDATE jobs
         SET status = 'expired', updated_at = datetime('now')
         WHERE status NOT IN ('applied', 'skipped', 'expired')
+        AND (source IS NULL OR source != 'manual')
         AND julianday('now') - julianday(first_seen_run) > ?
         """,
         (cutoff_days,),
@@ -250,3 +336,90 @@ def get_resurfacing_jobs(conn: sqlite3.Connection) -> list[sqlite3.Row]:
         """
     )
     return cur.fetchall()
+
+
+# ---------------------------------------------------------------------------
+# User management
+# ---------------------------------------------------------------------------
+
+def find_user_by_google_id(conn: sqlite3.Connection, google_id: str) -> sqlite3.Row | None:
+    """Look up a user by Google ID."""
+    return conn.execute("SELECT * FROM users WHERE google_id = ?", (google_id,)).fetchone()
+
+
+def find_user_by_id(conn: sqlite3.Connection, user_id: str) -> sqlite3.Row | None:
+    """Look up a user by their internal ID."""
+    return conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+
+
+def create_user(conn: sqlite3.Connection, user_id: str, email: str, name: str,
+                google_id: str, picture: str | None = None) -> None:
+    """Insert a new user."""
+    conn.execute(
+        "INSERT INTO users (id, email, name, google_id, picture) VALUES (?, ?, ?, ?, ?)",
+        (user_id, email, name, google_id, picture),
+    )
+    conn.commit()
+
+
+def get_user_settings(conn: sqlite3.Connection, user_id: str) -> sqlite3.Row | None:
+    """Get settings for a user."""
+    return conn.execute("SELECT * FROM user_settings WHERE user_id = ?", (user_id,)).fetchone()
+
+
+def upsert_user_settings(conn: sqlite3.Connection, user_id: str, **fields) -> None:
+    """Create or update user settings. Only updates fields that are passed."""
+    existing = get_user_settings(conn, user_id)
+    if existing is None:
+        # Insert with defaults + any provided fields
+        cols = ["user_id"] + list(fields.keys())
+        placeholders = ", ".join(["?"] * len(cols))
+        col_names = ", ".join(cols)
+        values = [user_id] + list(fields.values())
+        conn.execute(f"INSERT INTO user_settings ({col_names}) VALUES ({placeholders})", values)
+    else:
+        if not fields:
+            return
+        set_clause = ", ".join(f"{k} = ?" for k in fields)
+        values = list(fields.values()) + [user_id]
+        conn.execute(
+            f"UPDATE user_settings SET {set_clause}, updated_at = datetime('now') WHERE user_id = ?",
+            values,
+        )
+    conn.commit()
+
+
+# ---------------------------------------------------------------------------
+# Resume file BLOB storage
+# ---------------------------------------------------------------------------
+
+def store_resume_file(conn: sqlite3.Connection, file_id: str, user_id: str,
+                      dedup_key: str, filename: str, content: bytes) -> None:
+    """Store a resume DOCX as a BLOB. Replaces existing file for same user+dedup_key."""
+    conn.execute(
+        "DELETE FROM resume_files WHERE user_id = ? AND dedup_key = ?",
+        (user_id, dedup_key),
+    )
+    conn.execute(
+        "INSERT INTO resume_files (id, user_id, dedup_key, filename, content) VALUES (?, ?, ?, ?, ?)",
+        (file_id, user_id, dedup_key, filename, content),
+    )
+    conn.commit()
+
+
+def get_resume_file(conn: sqlite3.Connection, user_id: str, dedup_key: str) -> sqlite3.Row | None:
+    """Get a resume file BLOB for a specific user and job."""
+    return conn.execute(
+        "SELECT * FROM resume_files WHERE user_id = ? AND dedup_key = ?",
+        (user_id, dedup_key),
+    ).fetchone()
+
+
+def delete_resume_file(conn: sqlite3.Connection, user_id: str, dedup_key: str) -> bool:
+    """Delete a resume file. Returns True if a row was deleted."""
+    cur = conn.execute(
+        "DELETE FROM resume_files WHERE user_id = ? AND dedup_key = ?",
+        (user_id, dedup_key),
+    )
+    conn.commit()
+    return cur.rowcount > 0

@@ -2,6 +2,7 @@ anthropic
 google-genai
 google-api-python-client
 google-auth-oauthlib
+google-auth
 httpx
 beautifulsoup4
 python-docx
@@ -10,3 +11,11 @@ pyyaml
 python-dotenv
 docx2pdf
 pypdf
+fastapi
+uvicorn[standard]
+sse-starlette
+mammoth
+PyJWT
+cryptography
+pydantic
+google-search-results

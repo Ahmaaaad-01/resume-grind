@@ -51,13 +51,7 @@ def run_pipeline(dry_run: bool = False):
     conn = get_connection()
     init_db(conn)
 
-    if not dry_run:
-        bank = load_resume_bank()
-    else:
-        from pathlib import Path
-        bank = load_resume_bank(
-            Path(__file__).resolve().parent.parent / "examples" / "resume_bank.example.json"
-        )
+    bank = load_resume_bank()
 
     # --- Stats tracking ---
     stats = {
@@ -127,7 +121,12 @@ def run_pipeline(dry_run: bool = False):
         passes, filter_meta = passes_hard_filters(filter_job, config)
 
         if not passes:
-            log.info("  -> Rejected by hard filters: %s", filter_meta["reject_reason"])
+            reason = filter_meta["reject_reason"]
+            log.info("  -> Rejected by hard filters: %s", reason)
+            upsert_job(conn, {**job, "run_date": run_date,
+                              "title_normalized": normalize_title(title)})
+            update_job(conn, dedup_key, status="rejected",
+                       reject_reason=f"Hard filter: {reason}")
             continue
 
         stats["hard_filter_passed"] += 1
@@ -148,6 +147,12 @@ def run_pipeline(dry_run: bool = False):
         if not passes_pass1_cutoff(pass1_score, config):
             log.info("  -> Cut by Pass 1: %s/75", pass1_score)
             stats["pass1_filtered"] += 1
+            upsert_job(conn, {**job, "run_date": run_date,
+                              "title_normalized": normalize_title(title),
+                              "pass1_score": pass1_score})
+            update_job(conn, dedup_key, status="rejected",
+                       pass1_score=pass1_score,
+                       reject_reason=f"Below Pass 1 cutoff ({pass1_score}/75)")
             continue
 
         # JD extraction
@@ -161,6 +166,13 @@ def run_pipeline(dry_run: bool = False):
 
         if jd_source == "skipped":
             log.info("  -> JD skipped (too short)")
+            upsert_job(conn, {**job, "run_date": run_date,
+                              "title_normalized": normalize_title(title),
+                              "pass1_score": pass1_score})
+            update_job(conn, dedup_key, status="rejected",
+                       pass1_score=pass1_score,
+                       jd_source="skipped", jd_word_count=jd_word_count,
+                       reject_reason="JD too short")
             continue
 
         # Pass 2 scoring

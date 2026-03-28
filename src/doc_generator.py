@@ -408,20 +408,15 @@ def _sanitize_filename(text):
 
 
 def generate_resume_filename(bank, job):
-    """Generate filename per spec: {First}_{Last}_Resume_{Company}_{Title}.docx"""
+    """Generate filename: {First} {Last}, Resume, {Company}.docx"""
     name = bank.get("contact", {}).get("name", "Candidate")
     parts = name.split()
     first = parts[0] if parts else "First"
     last = parts[-1] if len(parts) > 1 else "Last"
 
     company = _sanitize_filename(job.get("company", "Company"))
-    title = _sanitize_filename(job.get("title_raw", "PM"))
 
-    # Shorten title for filename
-    if len(title) > 30:
-        title = title[:30].rstrip('_')
-
-    return f"{first}_{last}_Resume_{company}_{title}.docx"
+    return f"{first} {last}, Resume, {company}.docx"
 
 
 def _estimate_content_lines(doc):

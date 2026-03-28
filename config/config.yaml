@@ -1,18 +1,17 @@
 search:
-  # Group A: NYC-localized queries
+  # 4 broad queries x 40 results — maximize unique input, let scoring rank
+  # See docs/Tuning-Round-2.md Section 8.5 for rationale
   nyc_queries:
-    - "associate product manager"
-    - "product manager entry level"
-    - "APM product"
-    - "junior product manager PM1"
-    - "product manager"                # Broad — catches generic-titled PM roles
-  # Group B: Remote-focused query (uses remote_search_location)
+    - "product manager"                          # Broad NYC PM catch-all
+    - "associate product manager"                # Early-career NYC — surfaces long-tail on pages 2-4
+    - "product analyst OR growth analyst"        # PM-adjacent roles
+  # Group B: Remote/national query (uses remote_search_location)
   remote_queries:
-    - "product manager remote"
+    - "product manager"                          # Remote + national roles — low overlap with NYC
   serpapi_location: "New York, NY"     # Used for nyc_queries
   remote_search_location: "United States"  # Used for remote_queries
-  date_filter: "3days"                 # 3-day window — matches hard filter freshness
-  results_per_query: 10
+  date_filter: "week"                  # 7-day window — safety net for sporadic run cadence
+  results_per_query: 40
 
 location:
   target_metro: "new_york"
@@ -94,7 +93,7 @@ scoring:
     - "payments"
     - "neobank"
   thresholds:
-    generate_resume: 60
+    generate_resume: 40
     include_in_digest: 40
 
 jd_extraction:
@@ -102,7 +101,7 @@ jd_extraction:
   short_jd_warning_threshold: 150 # Below this, flag in digest
 
 tailoring:
-  provider: "claude"             # Default to Anthropics API
+  provider: "gemini"              # Using Google Gemini API
   gemini_model: "gemini-2.5-flash"
   claude_model: "claude-sonnet-4-20250514"  # Ensure correct Anthropics model
   max_bullets_per_role: 7
@@ -116,7 +115,7 @@ tailoring:
 
 output:
   resume_format: "docx"
-  file_naming: "{first}_{last}_Resume_{company}_{title}"
+  file_naming: "{first} {last}, Resume, {company}"
 
 notification:
   always_local_html: true        # Always generate and open local digest

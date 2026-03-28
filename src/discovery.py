@@ -1,4 +1,4 @@
-"""SerpAPI job discovery — 6 queries (5 NYC + 1 remote), normalize and dedup results.
+"""SerpAPI job discovery — 4 queries (3 NYC + 1 remote), normalize and dedup results.
 
 SerpAPI google_jobs response shape (validated 2026-03-21):
   jobs_results[]: array of job objects
@@ -28,17 +28,24 @@ from src.db import make_dedup_key
 log = logging.getLogger(__name__)
 
 
-def _build_search_params(query: str, location: str, config: dict) -> dict:
-    """Build SerpAPI search parameters for a single query."""
+def _build_search_params(query: str, location: str, config: dict,
+                         serpapi_key: str | None = None) -> dict:
+    """Build SerpAPI search parameters for a single query.
+
+    Args:
+        serpapi_key: If provided, use this key instead of the env var.
+                     Used in multi-tenant mode where each user has their own key.
+    """
     search_cfg = config["search"]
     date_filter = search_cfg.get("date_filter", "3days")
+    api_key = serpapi_key or get_env("SERPAPI_KEY")
     return {
         "engine": "google_jobs",
         "q": query,
         "location": location,
         "chips": f"date_posted:{date_filter}",
         "num": search_cfg.get("results_per_query", 10),
-        "api_key": get_env("SERPAPI_KEY"),
+        "api_key": api_key,
     }
 
 
@@ -81,10 +88,14 @@ def _normalize_job(raw: dict, query_source: str) -> dict:
 
 
 def _run_single_query(query: str, location: str, query_source: str,
-                       config: dict) -> list[dict]:
-    """Run one SerpAPI query and return normalized job dicts."""
-    params = _build_search_params(query, location, config)
-    log.info("SerpAPI query: %r location=%r", query, location)
+                       config: dict, serpapi_key: str | None = None) -> list[dict]:
+    """Run one SerpAPI query and return normalized job dicts.
+
+    Sends num directly (e.g. num=40). SerpAPI google_jobs supports num up to ~100.
+    If SerpAPI returns fewer, that's all that matched.
+    """
+    params = _build_search_params(query, location, config, serpapi_key=serpapi_key)
+    log.info("SerpAPI query: %r location=%r num=%s", query, location, params.get("num"))
 
     try:
         search = GoogleSearch(params)
@@ -106,8 +117,12 @@ def _run_single_query(query: str, location: str, query_source: str,
     return normalized
 
 
-def run_discovery(config: dict) -> list[dict]:
-    """Run all 6 SerpAPI queries and return deduplicated normalized job list.
+def run_discovery(config: dict, serpapi_key: str | None = None) -> list[dict]:
+    """Run all SerpAPI queries and return deduplicated normalized job list.
+
+    Args:
+        config: Loaded config dict.
+        serpapi_key: If provided, use this key instead of the env var.
 
     Returns list of job dicts, each containing:
         title_raw, company, location, url, date_posted,
@@ -122,11 +137,11 @@ def run_discovery(config: dict) -> list[dict]:
     all_jobs: list[dict] = []
 
     for query in nyc_queries:
-        jobs = _run_single_query(query, nyc_location, "nyc", config)
+        jobs = _run_single_query(query, nyc_location, "nyc", config, serpapi_key=serpapi_key)
         all_jobs.extend(jobs)
 
     for query in remote_queries:
-        jobs = _run_single_query(query, remote_location, "remote", config)
+        jobs = _run_single_query(query, remote_location, "remote", config, serpapi_key=serpapi_key)
         all_jobs.extend(jobs)
 
     # Dedup across queries — keep first occurrence

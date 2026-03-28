@@ -11,6 +11,12 @@ from dotenv import load_dotenv
 # Project root is one level up from src/
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
+# DATA_DIR can be overridden for cloud deployment (e.g., Railway persistent volume)
+DATA_DIR = Path(os.environ.get("DATA_DIR", str(PROJECT_ROOT / "data")))
+
+# When running in multi-tenant cloud mode, skip local file checks
+CLOUD_MODE = os.environ.get("CLOUD_MODE", "").lower() in ("1", "true", "yes")
+
 REQUIRED_PATHS = {
     "data/master_resume/resume_bank.json": (
         "Resume bank not found. Run:\n"
@@ -39,10 +45,18 @@ def ensure_directories() -> None:
     for dir_path in REQUIRED_DIRS:
         full_path = PROJECT_ROOT / dir_path
         full_path.mkdir(parents=True, exist_ok=True)
+    # Also ensure DATA_DIR exists (for cloud deployments)
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def check_setup(skip_resume_bank: bool = False) -> None:
-    """Validate that required files exist. Exit with clear errors if not."""
+    """Validate that required files exist. Exit with clear errors if not.
+
+    In CLOUD_MODE, skip all checks (keys and resume bank come from the DB).
+    """
+    if CLOUD_MODE:
+        return
+
     missing = False
     for rel_path, message in REQUIRED_PATHS.items():
         if skip_resume_bank and "resume_bank" in rel_path:
@@ -64,7 +78,7 @@ def load_config(skip_validation: bool = False) -> dict:
     """
     ensure_directories()
 
-    # Load .env into environment
+    # Load .env into environment (if present — not required in cloud mode)
     env_path = PROJECT_ROOT / ".env"
     if env_path.exists():
         load_dotenv(env_path)

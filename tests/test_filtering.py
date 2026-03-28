@@ -1,6 +1,4 @@
-"""Tests for src/filtering.py — hard filters, title classification, location, YOE, posting age."""
-
-from datetime import date
+"""Tests for src/filtering.py — hard filters, title classification, location, YOE."""
 
 import pytest
 
@@ -11,7 +9,6 @@ from src.filtering import (
     is_target_company_override,
     extract_yoe,
     check_yoe,
-    check_posting_age,
     passes_hard_filters,
 )
 
@@ -387,8 +384,11 @@ class TestCheckYoe:
     def test_one_year_passes(self):
         assert check_yoe("1+ years of experience") is True
 
-    def test_five_years_rejects(self):
-        assert check_yoe("5+ years of experience required") is False
+    def test_five_years_passes(self):
+        assert check_yoe("5+ years of experience required") is True
+
+    def test_six_years_rejects(self):
+        assert check_yoe("6+ years of experience required") is False
 
     def test_seven_years_rejects(self):
         assert check_yoe("Minimum 7 years of experience") is False
@@ -401,46 +401,6 @@ class TestCheckYoe:
 
     def test_empty_passes(self):
         assert check_yoe("") is True
-
-
-# ===================================================================
-# Posting age filter
-# ===================================================================
-
-class TestCheckPostingAge:
-
-    def test_today_passes(self):
-        today = date(2026, 3, 21)
-        assert check_posting_age("2026-03-21", today) is True
-
-    def test_yesterday_passes(self):
-        today = date(2026, 3, 21)
-        assert check_posting_age("2026-03-20", today) is True
-
-    def test_two_days_ago_passes(self):
-        today = date(2026, 3, 21)
-        assert check_posting_age("2026-03-19", today) is True
-
-    def test_three_days_ago_passes(self):
-        today = date(2026, 3, 21)
-        assert check_posting_age("2026-03-18", today) is True
-
-    def test_four_days_ago_rejects(self):
-        today = date(2026, 3, 21)
-        assert check_posting_age("2026-03-17", today) is False
-
-    def test_week_old_rejects(self):
-        today = date(2026, 3, 21)
-        assert check_posting_age("2026-03-14", today) is False
-
-    def test_none_date_passes(self):
-        assert check_posting_age(None) is True
-
-    def test_empty_date_passes(self):
-        assert check_posting_age("") is True
-
-    def test_unparseable_date_passes(self):
-        assert check_posting_age("not-a-date") is True
 
 
 # ===================================================================
@@ -457,13 +417,12 @@ class TestPassesHardFilters:
             "description": "2+ years of experience in product management",
             "date_posted": "2026-03-21",
         }
-        passes, meta = passes_hard_filters(job, fake_config, today=date(2026, 3, 21))
+        passes, meta = passes_hard_filters(job, fake_config)
         assert passes is True
         assert meta["title_passes"] is True
         assert meta["title_experimental"] is False
         assert meta["location_passes"] is True
         assert meta["yoe_passes"] is True
-        assert meta["age_passes"] is True
         assert meta["reject_reason"] is None
 
     def test_senior_title_rejects(self, fake_config):
@@ -474,7 +433,7 @@ class TestPassesHardFilters:
             "description": "",
             "date_posted": "2026-03-21",
         }
-        passes, meta = passes_hard_filters(job, fake_config, today=date(2026, 3, 21))
+        passes, meta = passes_hard_filters(job, fake_config)
         assert passes is False
         assert meta["reject_reason"] == "title"
 
@@ -486,7 +445,7 @@ class TestPassesHardFilters:
             "description": "",
             "date_posted": "2026-03-21",
         }
-        passes, meta = passes_hard_filters(job, fake_config, today=date(2026, 3, 21))
+        passes, meta = passes_hard_filters(job, fake_config)
         assert passes is False
         assert meta["reject_reason"] == "location"
 
@@ -498,21 +457,9 @@ class TestPassesHardFilters:
             "description": "Must have 7+ years of experience in product management",
             "date_posted": "2026-03-21",
         }
-        passes, meta = passes_hard_filters(job, fake_config, today=date(2026, 3, 21))
+        passes, meta = passes_hard_filters(job, fake_config)
         assert passes is False
         assert meta["reject_reason"] == "yoe"
-
-    def test_old_posting_rejects(self, fake_config):
-        job = {
-            "title": "Product Manager",
-            "company": "Acme Corp",
-            "location": "Remote",
-            "description": "1+ years of experience",
-            "date_posted": "2026-03-10",
-        }
-        passes, meta = passes_hard_filters(job, fake_config, today=date(2026, 3, 21))
-        assert passes is False
-        assert meta["reject_reason"] == "posting_age"
 
     def test_target_company_outside_metro_passes(self, fake_config):
         job = {
@@ -522,7 +469,7 @@ class TestPassesHardFilters:
             "description": "2+ years of experience",
             "date_posted": "2026-03-21",
         }
-        passes, meta = passes_hard_filters(job, fake_config, today=date(2026, 3, 21))
+        passes, meta = passes_hard_filters(job, fake_config)
         assert passes is True
         assert meta["location_target_override"] is True
 
@@ -534,7 +481,7 @@ class TestPassesHardFilters:
             "description": "",
             "date_posted": "2026-03-21",
         }
-        passes, meta = passes_hard_filters(job, fake_config, today=date(2026, 3, 21))
+        passes, meta = passes_hard_filters(job, fake_config)
         assert passes is True
         assert meta["title_experimental"] is True
 
@@ -547,10 +494,9 @@ class TestPassesHardFilters:
             "description": "1 year experience",
             "date_posted": "2026-03-21",
         }
-        passes, meta = passes_hard_filters(job, fake_config, today=date(2026, 3, 21))
+        passes, meta = passes_hard_filters(job, fake_config)
         assert passes is False
         assert meta["reject_reason"] == "title"
-        # Location, YOE, age should not have been evaluated
+        # Location and YOE should not have been evaluated
         assert meta["location_passes"] is False
         assert meta["yoe_passes"] is False
-        assert meta["age_passes"] is False
